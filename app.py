@@ -64,17 +64,19 @@ def get_best_matching_intent(user_input):
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json()
-    user_id = data.get("user_id")
-    user_message = data.get("message")
 
-    if not user_message:
-        return jsonify({"error": "No message provided"}), 400
+    # Ensure "message" is in the request
+    if not data or "message" not in data:
+        return jsonify({"error": "Invalid request, 'message' field is required"}), 400
 
-    # Initialize chat session if not exists
-    if user_id not in chat_sessions:
-        chat_sessions[user_id] = []
+    user_message = data["message"]
 
-    chat_sessions[user_id].append(f"You: {user_message}")  # Store user input
+    # Store chat session (No user ID, using a common session instead)
+    session_id = "default_session"  # Since no user_id is provided
+    if session_id not in chat_sessions:
+        chat_sessions[session_id] = []
+
+    chat_sessions[session_id].append(f"You: {user_message}")  # Store user input
 
     # Process message with the trained chatbot model
     tokenized_sentence = tokenize(user_message)
@@ -97,9 +99,9 @@ def chat():
             response = random.choice(intent["responses"])
             break
 
-    chat_sessions[user_id].append(f"{bot_name}: {response}")
+    chat_sessions[session_id].append(f"{bot_name}: {response}")
 
-    return jsonify({"bot": response, "context": chat_sessions[user_id][-5:]})  # Return last 5 messages
+    return jsonify({"bot": response, "context": chat_sessions[session_id][-5:]})  # Return last 5 messages
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
